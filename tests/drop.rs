@@ -18,6 +18,7 @@ fn drop_impl_simple_struct() {
             }
         }
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
@@ -102,6 +103,7 @@ fn drop_impl_enum() {
             }
         }
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
@@ -121,6 +123,7 @@ fn drop_impl_cross_crate_local() {
         },
         crate b {}
     ])
+    .rustc_ok()
     .skip_execute()
     .ok()
 }
