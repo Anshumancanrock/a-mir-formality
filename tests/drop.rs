@@ -132,6 +132,35 @@ fn drop_impl_cross_crate_local() {
 // Drop trait: invalid impls
 // ===================================================================
 
+/// Drop impl that does not define `drop`.
+#[test]
+fn drop_impl_missing_drop_fn() {
+    FormalityTest::new(crates![
+        crate Foo {
+            struct MyStruct {
+                value: u32,
+            }
+
+            impl Drop for MyStruct {}
+        }
+    ])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0046]: not all trait items implemented, missing: `drop`
+         --> lib.rs
+          |
+        5 | impl Drop for MyStruct {}
+          | ^^^^^^^^^^^^^^^^^^^^^^ missing `drop` in implementation
+          |
+          = help: implement the missing item: `fn drop(&mut self) { todo!() }`
+
+        For more information about this error, try `rustc --explain E0046`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        the rule "check_trait_impl" at (impls.rs) failed because
+          not all trait items implemented, missing: `drop`"#]])
+}
+
 /// Drop impl with extra where-clause not on the struct.
 #[test]
 fn drop_impl_extra_where_clause() {
