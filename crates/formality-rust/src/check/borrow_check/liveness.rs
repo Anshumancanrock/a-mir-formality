@@ -405,7 +405,8 @@ impl LiveBefore for Expr {
             | Expr::Mul { lhs, rhs }
             | Expr::BitOr { lhs, rhs }
             | Expr::BitXor { lhs, rhs }
-            | Expr::BitAnd { lhs, rhs } => {
+            | Expr::BitAnd { lhs, rhs }
+            | Expr::Cmp { lhs, op: _, rhs } => {
                 Seq(&**lhs, &**rhs).live_before(env, scopes, places_live)
             }
         }
