@@ -187,6 +187,7 @@ pub enum Expr {
     #[reject(Expr::AssignOp { .. }, _)]
     #[reject(Expr::BinOp { .. }, _)]
     #[reject(Expr::Mul { .. }, _)]
+    #[reject(Expr::Cmp { .. }, _)]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     #[cast]
@@ -227,8 +228,20 @@ pub enum Expr {
         turbofish: Turbofish,
     },
 
+    /// `lhs == rhs`
+    ///
+    /// Comparison. Evaluates to `bool`. Binds more loosely than arithmetic
+    /// and does not chain: `a == b == c` is rejected, as in Rust.
     #[grammar($lhs $op $rhs)]
-    #[precedence(1)]
+    #[precedence(1, none)]
+    Cmp {
+        lhs: Arc<Expr>,
+        op: CmpOpKind,
+        rhs: Arc<Expr>,
+    },
+
+    #[grammar($lhs $op $rhs)]
+    #[precedence(2)]
     #[reject(_, BinOpKind::Mul, _)]
     BinOp {
         lhs: Arc<Expr>,
@@ -238,7 +251,7 @@ pub enum Expr {
 
     // Multiplication comes before addition.
     #[grammar($lhs * $rhs)]
-    #[precedence(2)]
+    #[precedence(3)]
     Mul { lhs: Arc<Expr>, rhs: Arc<Expr> },
 }
 
@@ -348,6 +361,22 @@ impl BinOpKind {
             BinOpKind::Add => "+",
             BinOpKind::Sub => "-",
             BinOpKind::Mul => "*",
+        }
+    }
+}
+
+/// Comparison operators. Kept apart from `BinOpKind` because they
+/// evaluate to `bool` and have no compound-assignment form.
+#[term]
+pub enum CmpOpKind {
+    #[grammar(==)]
+    Eq,
+}
+
+impl CmpOpKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CmpOpKind::Eq => "==",
         }
     }
 }
