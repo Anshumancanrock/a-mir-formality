@@ -2253,3 +2253,35 @@ fn test_eq_struct_operands() {
         the rule "comparison" at (nll.rs) failed because
           pattern `(RigidTy {name: RigidName::ScalarId(_), parameters: _}, state)` did not match value `(S, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(a, S), (b, S)], [a : S, b : S])], point_flow_state({}, {}, {a}), {}, {}, {}))`"#]])
 }
+
+/// `!=` also requires both operands to have the same type.
+#[test]
+fn test_ne_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: bool = 1_i32 != 2_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: bool = 1_i32 != 2_u32;
+          |                       -----    ^^^^^ expected `i32`, found `u32`
+          |                       |
+          |                       expected because this is `i32`
+          |
+        help: change the type of the numeric literal from `u32` to `i32`
+          |
+        2 -     let mut x: bool = 1_i32 != 2_u32;
+        2 +     let mut x: bool = 1_i32 != 2_i32;
+          |
+
+        For more information about this error, try `rustc --explain E0308`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:22:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}

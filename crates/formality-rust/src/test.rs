@@ -689,3 +689,15 @@ fn test_parse_eq_does_not_chain() {
     let expr: Expr = term("(a == b) == c");
     assert!(matches!(expr, Expr::Cmp { .. }));
 }
+
+#[test]
+fn test_parse_ne_does_not_chain() {
+    // As with `==`, chained comparisons need parentheses, including mixes of `==` and `!=`.
+    for text in ["a != b != c", "a == b != c", "a != b == c"] {
+        let expr: Fallible<Expr> = try_term(text);
+        assert!(expr.is_err(), "`{text}` should be rejected");
+    }
+
+    let expr: Expr = term("(a == b) != c");
+    assert!(matches!(expr, Expr::Cmp { .. }));
+}

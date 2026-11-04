@@ -1760,3 +1760,119 @@ fn equality_ends_counting_loop() {
     .expect_output("0\n1\n2\n")
     .ok();
 }
+
+/// Checks both operand orders, so lowering `!=` to `<` or `>` would fail.
+#[test]
+fn integer_inequality() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(3_i32 != 3_i32);
+            println!(3_i32 != 4_i32);
+            println!(4_i32 != 3_i32);
+            println!(-3_i32 != 3_i32);
+            println!(7_u32 != 7_u32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\ntrue\ntrue\ntrue\nfalse\n")
+    .ok();
+}
+
+/// Operands that differ only in their high 64 bits must compare unequal.
+#[test]
+fn inequality_128_bit_high_bits() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(170141183460469231731687303715884105728_u128 != 0_u128);
+            println!(340282366920938463463374607431768211455_u128
+                != 340282366920938463463374607431768211455_u128);
+            println!(-170141183460469231731687303715884105728_i128 != 0_i128);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\nfalse\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn boolean_inequality() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(true != false);
+            println!(false != true);
+            println!(true != true);
+            println!((1_u32 == 1_u32) != false);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("true\ntrue\nfalse\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn inequality_binds_looser_than_arithmetic_and_bitwise() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            println!(2_i32 + 3_i32 != 5_i32);
+            println!(2_i32 * 3_i32 != 2_i32 + 3_i32);
+            println!(6_i32 ^ 3_i32 != 5_i32);
+            println!(4_i32 | 1_i32 != 5_i32);
+            println!(6_i32 & 3_i32 != 3_i32);
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\ntrue\nfalse\nfalse\ntrue\n")
+    .ok();
+}
+
+/// `!=` contains `=`, so check that it parses on the right of an assignment
+/// and inside call arguments.
+#[test]
+fn inequality_in_assignment_and_call_arguments() {
+    FormalityTest::new(crates![crate Foo {
+        fn identity(b: bool) -> bool { return b; }
+        fn main() -> () {
+            let b: bool = true;
+            b = 2_u32 + 3_u32 != 5_u32;
+            println!(b);
+            println!(identity(1_u32 != 2_u32));
+            println!(identity((1_u32 != 2_u32) != (3_u32 != 3_u32)));
+        }
+    }])
+    .rustc_ok()
+    .expect_output("false\ntrue\ntrue\n")
+    .ok();
+}
+
+#[test]
+fn inequality_evaluates_calls_left_to_right() {
+    FormalityTest::new(crates![crate Foo {
+        fn left() -> i32 { println!(1_i32); return 10_i32; }
+        fn right() -> i32 { println!(2_i32); return 20_i32; }
+        fn main() -> () { println!(left() != right()); }
+    }])
+    .rustc_ok()
+    .expect_output("1\n2\ntrue\n")
+    .ok();
+}
+
+/// The loop keeps running while a value computed at runtime differs from the bound.
+#[test]
+fn inequality_guards_counting_loop() {
+    FormalityTest::new(crates![crate Foo {
+        fn main() -> () {
+            let i: u32 = 0_u32;
+            'a: loop {
+                if i != 3_u32 {
+                    println!(i);
+                    i += 1_u32;
+                } else {
+                    break 'a;
+                }
+            }
+        }
+    }])
+    .rustc_ok()
+    .expect_output("0\n1\n2\n")
+    .ok();
+}
