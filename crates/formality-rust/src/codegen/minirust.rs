@@ -412,6 +412,7 @@ pub(super) fn comparison(
 ) -> MiniRustValue {
     let operator = match op {
         CmpOpKind::Eq => lang::BinOp::Rel(lang::RelOp::Eq),
+        CmpOpKind::Ne => lang::BinOp::Rel(lang::RelOp::Ne),
     };
     MiniRustValue(lang::ValueExpr::BinOp {
         operator,

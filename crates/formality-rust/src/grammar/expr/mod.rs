@@ -231,7 +231,7 @@ pub enum Expr {
         turbofish: Turbofish,
     },
 
-    /// `lhs == rhs`
+    /// `lhs == rhs` or `lhs != rhs`
     ///
     /// Comparison. Evaluates to `bool`. Binds more loosely than the arithmetic
     /// and bitwise operators and does not chain: `a == b == c` is rejected, as in Rust.
@@ -411,12 +411,15 @@ impl BinOpKind {
 pub enum CmpOpKind {
     #[grammar(==)]
     Eq,
+    #[grammar(!=)]
+    Ne,
 }
 
 impl CmpOpKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             CmpOpKind::Eq => "==",
+            CmpOpKind::Ne => "!=",
         }
     }
 }
