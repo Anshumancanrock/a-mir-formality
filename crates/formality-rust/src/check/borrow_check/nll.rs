@@ -132,7 +132,11 @@ judgment_fn! {
         debug(assumptions, env, state, block)
 
         (
-            (borrow_check_block(env, assumptions, state, block, LivePlaces::default()) => _state)
+            (borrow_check_block(env, assumptions, state, block, LivePlaces::default()) => state)
+            // Falling off the end of the body drops whatever is still in scope,
+            // which is just the parameters (see `FlowState::for_fn_body`).
+            (let locals_to_drop = state.locals_dropped_on_return())
+            (drop_places(env, assumptions, state, locals_to_drop, LivePlaces::default()) => _state)
             ------------------------------------------------------------ ("borrow_check")
             (borrow_check(env, assumptions, state, block) => ())
         )
@@ -282,6 +286,10 @@ judgment_fn! {
             (borrow_check_expr(env, assumptions, state, expr, LivePlaces::default()) => (expr_ty, state))
             (if let Some(output_ty) = &env.output_ty)
             (prove_assignable(env, assumptions, state, expr_ty, output_ty) => state)
+            // Once the return value is computed, every local still in scope is
+            // dropped, parameters included. Nothing is live afterwards.
+            (let locals_to_drop = state.locals_dropped_on_return())
+            (drop_places(env, assumptions, state, locals_to_drop, LivePlaces::default()) => state)
             (let state = state.diverges())
             ------------------------------------------------------------ ("return")
             (borrow_check_statement(env, assumptions, state, Stmt::Return { expr }, _places_live_on_exit) => (env, state))
